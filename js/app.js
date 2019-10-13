@@ -318,7 +318,7 @@ function get_job(){
 	    $("#pool_hashes").html(pool_hashes);
 		if(parseInt(data.loop_time) > 0){
 			pool_mode = "Time";
-			var remaining = parseInt(data.loop_time)*3600 - pool_elapse;
+			var remaining = parseInt(data.loop_time)*60 - pool_elapse;
 			$("#pool_remain").html( secondstotime( (remaining > 0 ? remaining : "0"), true ) );
 		}
 		$("#pool_mode").html(pool_mode);
