@@ -203,7 +203,7 @@ $$(document).on('page:init', '.page[data-name="settings"]', function (e) {
 	});	
 	$$('.title_proxy').html("Proxy <b>" + config_data.proxy_infos[proxy_id].label +"</b>" );
 	$.each( config_data, function( key, val ){				
-		if(typeof val === 'object'){
+		if(val && typeof val === 'object'){
 			$.each( val, function( k, v ){
 				if(key == "pools"){
 					//console.log(v["url"]);

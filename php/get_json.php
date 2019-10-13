@@ -92,9 +92,10 @@ switch($_POST['cc'])
 				$key = array_search($proxy_address, array_column($jobs, 'proxy'));			
 				if($key !== false){	
 					//-- Loop Time
-					if($jobs[$key]["loop_time"] > 0){
+                    $loop_time = $jobs[$key]["loop_time"];
+					if($loop_time > 0){
 						$pool_time = $jobs[$key]["pool_time"];
-						if( (time()-$pool_time)/3600 >= $jobs[$key]["loop_time"]){
+						if( (time()-$pool_time)/60 >= $loop_time ){
 							swap_pool($proxy_address, $summary_array, $proxy_config_data, $proxy["token"], $jobs[$key]);						
 						}
 					}else if(!empty($jobs[$key]["pools"])){
@@ -192,7 +193,7 @@ switch($_POST['cc'])
 	    $proxy_id = $_POST["proxy"];
 		$mode = $_POST["mode"];
 		$url = "http://".$proxy_list[$proxy_id]["ip"].":".$proxy_list[$proxy_id]["port"]."/1/config";
-		$proxy_config_data = $_POST["proxy_config_data"];
+		$proxy_config_data = sanitise_obj($_POST["proxy_config_data"]);
 		if($mode == "switch"){
 			$summary_array = $_POST["summary_array"];
 			$new_pool = $_POST["new_pool"];
@@ -203,7 +204,7 @@ switch($_POST['cc'])
 			$key = array_search($proxy_list[$proxy_id]["ip"].":".$proxy_list[$proxy_id]["port"], array_column($jobs, 'proxy'));
 			
 			if($key === false){
-				$job = array("loop_time" => "", "pools" => array(), "proxy" => $proxy_address);
+				$job = array("loop_time" => 0, "pools" => array(), "proxy" => $proxy_address);
 			}else{			
 				$job = $jobs[$key];
 			}			
@@ -285,7 +286,6 @@ function swap_pool($proxy_address, $summary_array, $proxy_config_data, $token, $
 	$response = write_config($proxy_url, $proxy_config_data, $token);	
 	$job_infos = array("proxy_hashes" => $summary_array["results"]["hashes_total"], "proxy_shares" => $summary_array["results"]["accepted"], "proxy_pool" => $prev_pool["url"]);
 	write_job($job, $job_infos);
-	return json_encode(true);
 }
 
 
@@ -313,12 +313,29 @@ function history_write($datas){
 	file_put_contents($myFile, $jsondata);
 }
 
+function sanitise_obj($obj) {
+    foreach($obj as $k=>$v) {
+        if(is_array($v)) {
+            $obj[$k] = sanitise_obj($obj[$k]);
+        } elseif ($v == "") {
+            $obj[$k] = NULL;
+        } elseif ($v == "false") {
+            $obj[$k] = false;
+        } elseif ($v == "true") {
+            $obj[$k] = true;
+        }
+    }
+    return $obj;
+}
 
 function write_job($new_job, $infos){
 	$myFile = "jobs.json";
 	$new_job["pool_time"] = time();
 	$new_job["pool_hashes"] = $infos["proxy_hashes"];
 	$new_job["pool_shares"] = $infos["proxy_shares"];
+    if ($new_job["loop_time"]) {
+        $new_job["loop_time"] = intval($new_job["loop_time"]);
+    }
 	$hist_datas = array("proxy"=>$new_job["proxy"]);
 	if(!file_exists($myFile)){
 		$create = json_encode(array(), JSON_PRETTY_PRINT);
@@ -351,24 +368,9 @@ function write_job($new_job, $infos){
 	return true;
 }
 
-function sanitise_obj($obj) {
-    foreach($obj as $k=>$v) {
-        if(is_array($v)) {
-            $obj[$k] = sanitise_obj($obj[$k]);
-        } elseif ($v == "") {
-            $obj[$k] = NULL;
-        } elseif ($v == "false") {
-            $obj[$k] = false;
-        } elseif ($v == "true") {
-            $obj[$k] = true;
-        }
-    }
-    return $obj;
-}
-
 //-- Write to XMRIG-Proxy config.json
 function write_config($url, $proxy_config_data, $token){ 	
-	$proxy_config_data = json_encode(sanitise_obj($proxy_config_data), JSON_NUMERIC_CHECK);
+	$proxy_config_data = json_encode($proxy_config_data, JSON_NUMERIC_CHECK);
 	$authorization = "Authorization: Bearer ".$token;
 	$ch = curl_init();
 	curl_setopt($ch, CURLOPT_HTTPHEADER, array(                                                                          
