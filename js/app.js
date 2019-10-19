@@ -20,7 +20,7 @@ var app = new Framework7({
 var password = false;
 if(localStorage.getItem('save-pass') == "true") password = localStorage.getItem('xmrig-pass');
 var mainView = app.views.create('.view-main', {url: '/'});
-var proxy_id = 0;
+var proxy_id = parseInt(localStorage.getItem('proxy_id') || 0); localStorage.setItem('proxy_id', proxy_id);
 var refresh = false;
 var configTimer = false;
 var config_data = {};
@@ -74,6 +74,7 @@ $$(document).on('page:init', '.page[data-name="main"]', function (e) {
 		app.dialog.confirm('Disconnect  ?', 'Confirm', function () {
 			localStorage.removeItem('save-pass');
 			localStorage.removeItem('xmrig-pass');
+			localStorage.removeItem('proxy_id');
 			password = false;
 			clearInterval(configTimer);
 			mainView.router.refreshPage();
@@ -82,6 +83,7 @@ $$(document).on('page:init', '.page[data-name="main"]', function (e) {
 	
 	$$('#change_proxy').on("change", function(e) {
 		proxy_id = this.value;
+		localStorage.setItem('proxy_id', proxy_id);
 		$.each( $('.numeric-cell'), function( i ){ $(this).html(""); }); //-- clean html datas
 		app.dialog.preloader('Changing proxy ...');
 		refresh();
