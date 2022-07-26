@@ -1,0 +1,1 @@
+# xmrigproxy-frontend
